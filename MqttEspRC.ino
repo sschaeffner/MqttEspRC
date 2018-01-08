@@ -113,7 +113,6 @@ void mqttCallback(char *topic, byte *payload, unsigned int length) {
       if (i > nameLength) {
         subTopic[i - nameLength - 1] = 0;
       }
-      Serial.println();
       break;
     }
 
@@ -122,30 +121,17 @@ void mqttCallback(char *topic, byte *payload, unsigned int length) {
     }
   }
   
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("] ");
-  for (int i = 0; i < length; i++) {
-    Serial.print((char)payload[i]);
-  }
-  Serial.println();
-
-  Serial.print("subTopic: ");
-  Serial.println(subTopic);
-
   int num = atoi(subTopic);
   if (num > 0) {
-    Serial.println("subTopic is number");
-    Serial.print("num: ");
-    Serial.println(num, DEC);
-
     if (length == 1) {
       if (payload[0] == '1') {
-        Serial.println("switching on...");
+        Serial.print("switching on outlet ");
+        Serial.println(num, DEC);
         rc.on(num);
       } else if (payload[0] == '0') {
         rc.off(num);
-        Serial.println("switching off...");
+        Serial.print("switching off outlet ");
+        Serial.println(num, DEC);
       }
     }
   }
