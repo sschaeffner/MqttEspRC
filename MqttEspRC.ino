@@ -3,14 +3,15 @@
 #include "RCHandler.h"
 #include "EepromConfigHandler.h"
 
-const char* mqtt_server = "192.168.0.15";
-
 EepromConfigHandler conf;
 RCHandler rc;
-WiFiClient espClient;
+WiFiClientSecure espClient;
 PubSubClient mqtt(espClient);
 char name[32];
 int nameLength;
+char mqttServer[64];
+char mqttUsername[32];
+char mqttPassword[32];
 
 void setup() {
   Serial.begin(115200);
@@ -22,6 +23,9 @@ void setup() {
   conf.getName(name);
   conf.getWifiSSID(ssid);
   conf.getWifiPassphrase(passphrase);
+  conf.getMqttServer(mqttServer);
+  conf.getMqttUsername(mqttUsername);
+  conf.getMqttPassword(mqttPassword);
 
   for (int i = 0; i < 32; i++) {
     if (name[i] == 0) {
@@ -76,20 +80,28 @@ void loop_wifi() {
 }
 
 void initial_mqtt() {
-  mqtt.setServer(mqtt_server, 1883);
+  mqtt.setServer(mqttServer, 8883);
   mqtt.setCallback(mqttCallback);
 }
 
+unsigned long lastDotMillisMqtt = 0;
+bool outputMqttStatus = false;
+
 void loop_mqtt() {
   if (WiFi.status() == WL_CONNECTED && !mqtt.connected()) {
-    Serial.print("Attempting MQTT connection...");
+    currMillis = millis();
+    if (currMillis - lastDotMillisMqtt > 500) {
+      Serial.println("MQTT: ...");
+      lastDotMillisMqtt = currMillis;
+      outputMqttStatus = true;
+    } else {
+      outputMqttStatus = false;
+    }
     // Attempt to connect
     conf.getName(name);
-    if (mqtt.connect(name)) {
-      Serial.println("connected");
-      // Once connected, publish an announcement...
-      //mqtt.publish("outTopic", "hello world");
-      // ... and resubscribe
+    if (mqtt.connect(name, mqttUsername, mqttPassword)) {
+      Serial.println("MQTT: connected");
+      
       char nameTopic[34];//32 chars + "/#"
       conf.getName(nameTopic);
 
@@ -99,8 +111,10 @@ void loop_mqtt() {
       
       mqtt.subscribe(nameTopic);
     } else {
-      Serial.print("failed, rc=");
-      Serial.print(mqtt.state());
+      if (outputMqttStatus) {
+        Serial.print("failed, rc=");
+        Serial.println(mqtt.state());
+      }
     }
   }
   mqtt.loop();

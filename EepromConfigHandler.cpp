@@ -33,6 +33,9 @@ void EepromConfigHandler::loop() {
             Serial.println("* n - set name of device");
             Serial.println("* s - set ssid of wifi to connect to");
             Serial.println("* p - set passphrase of wifi to connect to");
+            Serial.println("* m - set mqtt server");
+            Serial.println("* u - set mqtt username");
+            Serial.println("* i - set mqtt password");
             Serial.println("* c - clear configuration");
             Serial.println("============");
             break;
@@ -54,13 +57,37 @@ void EepromConfigHandler::loop() {
             Serial.print("passphrase: ");
             while (Serial.available() > 0) Serial.read();
             break;
+          case 'm':
+            mode = 'm';
+            pos = 0;
+            Serial.print("mqtt server: ");
+            while (Serial.available() > 0) Serial.read();
+            break;
+          case 'u':
+            mode = 'u';
+            pos = 0;
+            Serial.print("mqtt username: ");
+            while (Serial.available() > 0) Serial.read();
+            break;
+          case 'i':
+            mode = 'i';
+            pos = 0;
+            Serial.print("mqtt password: ");
+            while (Serial.available() > 0) Serial.read();
+            break;
           case 'l':
             char nameBuf[32];
             char ssidBuf[32];
             char passphraseBuf[64];
+            char mqttServerBuf[64];
+            char mqttUsernameBuf[32];
+            char mqttPasswordBuf[32];
             getName(nameBuf);
             getWifiSSID(ssidBuf);
             getWifiPassphrase(passphraseBuf);
+            getMqttServer(mqttServerBuf);
+            getMqttUsername(mqttUsernameBuf);
+            getMqttPassword(mqttPasswordBuf);
             Serial.println("=== config ===");
             Serial.print("name: ");
             Serial.println(nameBuf);
@@ -69,6 +96,12 @@ void EepromConfigHandler::loop() {
             Serial.print("passphrase: ");
             printPassphrase(passphraseBuf, 32);
             Serial.println();
+            Serial.print("mqtt s: ");
+            Serial.println(mqttServerBuf);
+            Serial.print("mqtt u: ");
+            Serial.println(mqttUsernameBuf);
+            Serial.print("mqtt p: ");
+            Serial.println(mqttPasswordBuf);
             Serial.println("==============");
             break;
           case 'c':
@@ -128,6 +161,48 @@ void EepromConfigHandler::loop() {
         buffer[pos++] = inBuf;
       }
       break;
+    case 'm'://mqtt server
+      if (pos == 0 && (inBuf == '\n' || inBuf == '\r')) {
+        //do not increase pos
+      } else if (pos > 0 && (inBuf == '\n' || inBuf == '\r')) {
+        buffer[pos] = 0;//terminate string
+        setMqttServer(buffer, pos);
+        mode = 0;
+        Serial.println();
+        Serial.println("new mqtt server set");
+      } else {
+        Serial.print(inBuf);
+        buffer[pos++] = inBuf;
+      }
+      break;
+    case 'u'://mqtt username
+      if (pos == 0 && (inBuf == '\n' || inBuf == '\r')) {
+        //do not increase pos
+      } else if (pos > 0 && (inBuf == '\n' || inBuf == '\r')) {
+        buffer[pos] = 0;//terminate string
+        setMqttUsername(buffer, pos);
+        mode = 0;
+        Serial.println();
+        Serial.println("new mqtt username set");
+      } else {
+        Serial.print(inBuf);
+        buffer[pos++] = inBuf;
+      }
+      break;
+    case 'i'://mqtt password
+      if (pos == 0 && (inBuf == '\n' || inBuf == '\r')) {
+        //do not increase pos
+      } else if (pos > 0 && (inBuf == '\n' || inBuf == '\r')) {
+        buffer[pos] = 0;//terminate string
+        setMqttPassword(buffer, pos);
+        mode = 0;
+        Serial.println();
+        Serial.println("new mqtt password set");
+      } else {
+        Serial.print(inBuf);
+        buffer[pos++] = inBuf;
+      }
+      break;
     case 'c'://clear
       if (inBuf == 'y') {
         Serial.println("clearing config...");
@@ -176,6 +251,30 @@ int EepromConfigHandler::getWifiPassphrase(char passphrase[]){
 
 int EepromConfigHandler::setWifiPassphrase(char passphrase[], int length) {
   return writeCharArray(64, passphrase, length, 64);
+}
+
+int EepromConfigHandler::getMqttServer(char server[]){
+  return getCharArray(128, server, 64);
+}
+
+int EepromConfigHandler::setMqttServer(char server[], int length){
+  return writeCharArray(128, server, length, 64);
+}
+
+int EepromConfigHandler::getMqttUsername(char username[]){
+  return getCharArray(192, username, 32);
+}
+
+int EepromConfigHandler::setMqttUsername(char username[], int length) {
+  return writeCharArray(192, username, length, 32);
+}
+
+int EepromConfigHandler::getMqttPassword(char password[]) {
+  return getCharArray(224, password, 32);
+}
+
+int EepromConfigHandler::setMqttPassword(char password[], int length) {
+  return writeCharArray(224, password, length, 32);
 }
 
 /*
