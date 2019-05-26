@@ -13,13 +13,14 @@ char mqttServer[64];
 char mqttUsername[32];
 char mqttPassword[32];
 
+char ssid[32];
+char passphrase[64];
+
 void setup() {
   Serial.begin(115200);
   conf.init();
   rc.init();
   
-  char ssid[32];
-  char passphrase[64];
   conf.getName(name);
   conf.getWifiSSID(ssid);
   conf.getWifiPassphrase(passphrase);
@@ -52,11 +53,17 @@ void loop() {
   conf.loop();
   loop_wifi();
   loop_mqtt();
+  delay(1);
 }
 
 bool firstConn = true;
 unsigned long lastDotMillis = 0;
 unsigned long currMillis = 0;
+
+unsigned long lastConn = 0;
+unsigned long lastWifiReboot = 0;
+
+unsigned long lastMqttReconn = 0;
 
 void loop_wifi() {
   if (WiFi.status() != WL_CONNECTED) {
@@ -66,6 +73,23 @@ void loop_wifi() {
       Serial.println("WiFi: ...");
       lastDotMillis = currMillis;
     }
+    if (currMillis - lastConn > 10000 && currMillis - lastWifiReboot > 10000) {
+      Serial.println("Turning WiFi off and on again...");
+      
+      conf.getWifiSSID(ssid);
+      conf.getWifiPassphrase(passphrase);
+      
+      WiFi.disconnect(true);
+      WiFi.mode(WIFI_OFF);
+      WiFi.mode(WIFI_STA);
+      WiFi.begin(ssid, passphrase);
+
+      lastWifiReboot = millis();
+    }
+    if (currMillis - lastConn > 60000) {
+      Serial.println("Rebooting...");
+      ESP.restart();
+    }
   } else {
     if (firstConn) {
       firstConn = false;
@@ -74,44 +98,46 @@ void loop_wifi() {
       Serial.println(")");
 
       Serial.println("connecting to MQTT Server...");
+      espClient.setInsecure();
       initial_mqtt();
     }
   }
 }
 
 void initial_mqtt() {
+  conf.getMqttServer(mqttServer);
+  
   mqtt.setServer(mqttServer, 8883);
   mqtt.setCallback(mqttCallback);
 }
 
-unsigned long lastDotMillisMqtt = 0;
-bool outputMqttStatus = false;
-
 void loop_mqtt() {
   if (WiFi.status() == WL_CONNECTED && !mqtt.connected()) {
     currMillis = millis();
-    if (currMillis - lastDotMillisMqtt > 500) {
-      Serial.println("MQTT: ...");
-      lastDotMillisMqtt = currMillis;
-      outputMqttStatus = true;
-    } else {
-      outputMqttStatus = false;
-    }
-    // Attempt to connect
-    conf.getName(name);
-    if (mqtt.connect(name, mqttUsername, mqttPassword)) {
-      Serial.println("MQTT: connected");
-      
-      char nameTopic[34];//32 chars + "/#"
-      conf.getName(nameTopic);
 
-      nameTopic[nameLength] = '/';
-      nameTopic[nameLength+1] = '#';
-      nameTopic[nameLength+2] = 0;
+    if (currMillis - lastMqttReconn > 3000) {
+      lastMqttReconn = currMillis;
       
-      mqtt.subscribe(nameTopic);
-    } else {
-      if (outputMqttStatus) {
+      // Attempt to connect
+      conf.getName(name);
+      conf.getMqttUsername(mqttUsername);
+      conf.getMqttPassword(mqttPassword);
+      
+      Serial.printf("connecting to %s:8883 with %s, %s, %s\n", mqttServer, name, mqttUsername, mqttPassword);
+      if (mqtt.connect(name, mqttUsername, mqttPassword)) {
+        Serial.println("MQTT: connected");
+        
+        char nameTopic[34];//32 chars + "/#"
+        conf.getName(nameTopic);
+  
+        nameTopic[nameLength] = '/';
+        nameTopic[nameLength+1] = '#';
+        nameTopic[nameLength+2] = 0;
+  
+        Serial.printf("MQTT: subscribing to topic %s'n", nameTopic);
+        
+        mqtt.subscribe(nameTopic);
+      } else {
         Serial.print("failed, rc=");
         Serial.println(mqtt.state());
       }
@@ -150,4 +176,3 @@ void mqttCallback(char *topic, byte *payload, unsigned int length) {
     }
   }
 }
-
