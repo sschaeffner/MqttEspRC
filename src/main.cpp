@@ -1,5 +1,7 @@
+#include <Arduino.h>
 #include <PubSubClient.h>
 #include <ESP8266WiFi.h>
+#include "main.h"
 #include "RCHandler.h"
 #include "EepromConfigHandler.h"
 
