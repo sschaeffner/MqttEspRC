@@ -165,4 +165,23 @@ void websocketEventCallback(websockets::WebsocketsEvent event, String data) {
 void websocketMsgCallback(websockets::WebsocketsMessage message) {
   Serial.print("[WS] Message: ");
   Serial.println(message.c_str());
+
+  if (strlen(message.c_str()) >= 2) {
+    if (message.c_str()[0] == 's' && message.c_str()[1] == ':') {
+      Serial.println("S!");
+
+      unsigned long code;
+      unsigned int length;
+      sscanf(&message.c_str()[2], "%lu,%u", &code, &length);
+      Serial.print("Code: ");
+      Serial.print(code);
+      Serial.print(" Length: ");
+      Serial.println(length);
+    
+      Serial.printf("[RC] Sending %lu,%u", code, length);
+      digitalWrite(D0, LOW);
+      rc.send(code, length);
+      digitalWrite(D0, HIGH);
+    }
+  }
 }
