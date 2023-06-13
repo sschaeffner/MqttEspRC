@@ -4,12 +4,9 @@
 void RCHandler::init() {
   sw.enableTransmit(2);//GPIO2 / D4
   sw.setPulseLength(180);
+  sw.setRepeatTransmit(20);
 }
 
-void RCHandler::on(int id) {
-  sw.send(id, 24);
+void RCHandler::send(unsigned long code, unsigned int length) {
+  sw.send(code, length);
 }
-void RCHandler::off(int id) {
-  sw.send((id & 0xFFFFF0) | 0b1100, 24);
-}
-

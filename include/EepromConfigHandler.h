@@ -4,12 +4,12 @@
 
 /*
  * Memory Layout:
- * 000-031: Name (31 chars + termination)
+ * 000-031: free (31 chars + termination)
  * 032-063: Wi-Fi SSID (31 chars + termination)
  * 064-127: Wi-Fi passphrase (63 chars + termination)
- * 128-191: MQTT Server (63 chars + termination)
- * 192-223: MQTT Username (31 chars + termination)
- * 224-255: MQTT Password (31 chars + termination)
+ * 128-191: WS Server (63 chars + termination)
+ * 192-223: WS Username (31 chars + termination)
+ * 224-255: WS Password (31 chars + termination)
  * 256-511: free
  */
 
@@ -18,21 +18,19 @@ class EepromConfigHandler {
     void init();
     void clear();
     void loop();
-    int getName(char name[]);
     int getWifiSSID(char ssid[]);
     int getWifiPassphrase(char passphrase[]);
-    int getMqttServer(char server[]);
-    int getMqttUsername(char username[]);
-    int getMqttPassword(char password[]);
+    int getWsServer(char server[]);
+    int getWsUsername(char username[]);
+    int getWsPassword(char password[]);
   private:
     int getCharArray(int start, char content[], int length);
     int writeCharArray(int start, char content[], int length, int length_max);
-    int setName(char name[], int length);
     int setWifiSSID(char ssid[], int length);
     int setWifiPassphrase(char passphrase[], int length);
     void printPassphrase(char passphrase[], int length);
-    int setMqttServer(char userver[], int length);
+    int setWsServer(char userver[], int length);
     int setMqttUsername(char username[], int length);
-    int setMqttPassword(char password[], int length);
+    int setWsPassword(char password[], int length);
 };
 #endif //EEPROM_CONFIG_HANDLER_H

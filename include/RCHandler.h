@@ -3,19 +3,10 @@
 
 #include "RCSwitch.h"
 
-/*
- * 1 - 333107 333116
- * 2 - 333251 333260
- * 3 - 333571 333580
- * 4 - 335107 335116
- */
-
-
 class RCHandler {
   public:
     void init();
-    void on(int id);
-    void off(int id);
+    void send(unsigned long code, unsigned int length);
   private:
     RCSwitch sw;
 };
