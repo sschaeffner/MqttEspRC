@@ -168,17 +168,11 @@ void websocketMsgCallback(websockets::WebsocketsMessage message) {
 
   if (strlen(message.c_str()) >= 2) {
     if (message.c_str()[0] == 's' && message.c_str()[1] == ':') {
-      Serial.println("S!");
-
       unsigned long code;
       unsigned int length;
       sscanf(&message.c_str()[2], "%lu,%u", &code, &length);
-      Serial.print("Code: ");
-      Serial.print(code);
-      Serial.print(" Length: ");
-      Serial.println(length);
-    
-      Serial.printf("[RC] Sending %lu,%u", code, length);
+
+      Serial.printf("[RC] Sending %lu,%u ...\n", code, length);
       digitalWrite(D0, LOW);
       rc.send(code, length);
       digitalWrite(D0, HIGH);

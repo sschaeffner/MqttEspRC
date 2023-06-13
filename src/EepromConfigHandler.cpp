@@ -83,10 +83,8 @@ void EepromConfigHandler::loop() {
             Serial.print("ssid: \"");
             Serial.print(ssidBuf);
             Serial.println("\"");
-            Serial.print("passphrase: \"");
-            Serial.print(passphraseBuf);
-            Serial.println("\"");
-            // printPassphrase(passphraseBuf, 32);
+            Serial.print("passphrase: ");
+            printPassphrase(passphraseBuf, 32);
             Serial.println();
             Serial.print("ws s: ");
             Serial.println(wsServerBuf);
