@@ -13,7 +13,7 @@ char passphrase[64];
 
 void setup() {
   pinMode(D0, OUTPUT);
-  digitalWrite(D0, HIGH);
+  digitalWrite(D0, LOW);
 
   Serial.begin(115200);
   conf.init();
@@ -124,6 +124,7 @@ void loop_ws() {
       
       if(connected) {
         Serial.println("[WS] Connected");
+        digitalWrite(D0, HIGH);
         wsClient.send("Hello Server");
       } else {
         Serial.println("[WS] Not Connected!");
@@ -176,6 +177,9 @@ void websocketMsgCallback(websockets::WebsocketsMessage message) {
       digitalWrite(D0, LOW);
       rc.send(code, length);
       digitalWrite(D0, HIGH);
+    }else if (strcmp(message.c_str(), "reboot") == 0) {
+      Serial.println("Rebooting...");
+      ESP.restart();
     }
   }
 }
