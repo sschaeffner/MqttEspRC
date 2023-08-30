@@ -131,7 +131,7 @@ void loop_ws() {
       }
     }
 
-    if(wsClient.available()) {
+    if(wsClient.available(true)) {
       wsClient.poll();
       lastWsAvailable = currMillis;
     }
