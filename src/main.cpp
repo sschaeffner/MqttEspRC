@@ -47,49 +47,53 @@ void loop() {
   yield();
 }
 
-bool firstConn = true;
-unsigned long lastDotMillis = 0;
 unsigned long currMillis = 0;
 
-unsigned long lastConn = 0;
-unsigned long lastWifiReboot = 0;
+bool wifiFirstConn = true;
+unsigned long wifiLastDotMillis = 0;
+unsigned long wifiLastConn = 0;
+unsigned long wifiLastReboot = 0;
 
-unsigned long lastMqttReconn = 0;
+unsigned long wsLastConn = 0;
+unsigned long wsLastConnectTry = 0;
+unsigned long wsLastConnectCheck = 0;
 
 void loop_wifi() {
+  currMillis = millis();
+
   if (WiFi.status() != WL_CONNECTED) {
-    firstConn = true;
-    currMillis = millis();
-    if (currMillis - lastDotMillis > 10000) {
+    wifiFirstConn = true;    
+    if (currMillis - wifiLastDotMillis > 10000) {
       Serial.print("[WiFi] ... (");
       Serial.print(WiFi.status());
       Serial.println(")");
-      lastDotMillis = currMillis;
+      wifiLastDotMillis = currMillis;
     }
-    if (currMillis - lastConn > 30000 && currMillis - lastWifiReboot > 30000) {
+    if (currMillis - wifiLastConn > 30000 && currMillis - wifiLastReboot > 30000) {
       Serial.println("[WiFi] Turning off and on again...");
-      
-      conf.getWifiSSID(ssid);
-      conf.getWifiPassphrase(passphrase);
-      
+
       WiFi.disconnect(true);
       WiFi.mode(WIFI_OFF);
       WiFi.mode(WIFI_STA);
       WiFi.begin(ssid, passphrase);
 
-      lastWifiReboot = millis();
+      wifiLastReboot = millis();
     }
-    if (currMillis - lastConn > 120000) {
-      Serial.println("Rebooting...");
+    if (currMillis - wifiLastConn > 120000) {
+      Serial.println("[WiFi] Not connected for 120s. Rebooting...");
       ESP.restart();
     }
-  } else {
-    if (firstConn) {
-      firstConn = false;
+  } 
+
+  if (WiFi.status() == WL_CONNECTED) {
+    wifiLastConn = currMillis;
+
+    if (wifiFirstConn) {
+      wifiFirstConn = false;
       Serial.print("[WiFi] connected (");
       Serial.print(WiFi.localIP());
       Serial.println(")");
-    }
+    } 
   }
 }
 
@@ -116,7 +120,7 @@ void loop_ws() {
   if (WiFi.status() == WL_CONNECTED) {
     currMillis = millis();
 
-    if (currMillis - lastWsAvailable > 15000 && currMillis - lastWsConnectTry > 15000) {
+    if (currMillis - wsLastConn > 15000 && currMillis - wsLastConnectTry > 15000) {
       lastWsConnectTry = currMillis;
       Serial.println("[WS] Connecting...");
 
@@ -126,15 +130,33 @@ void loop_ws() {
         Serial.println("[WS] Connected");
         digitalWrite(D0, HIGH);
         wsClient.send("Hello Server");
+
+        wsLastConnectCheck = currMillis;
       } else {
         Serial.println("[WS] Not Connected!");
       }
     }
 
-    if(wsClient.available(true)) {
-      wsClient.poll();
-      lastWsAvailable = currMillis;
+    if (currMillis - wsLastConnectCheck > 5000) {
+      wsLastConnectCheck = currMillis;
+
+      if (wsClient.available(true)) {        
+        wsLastConn = currMillis;
+      } else {
+        Serial.println("[WS] Not connected!");
+      }
+    } else {
+      if (wsClient.available()) {
+        wsLastConn = currMillis;
+      }
     }
+
+    if (currMillis - wsLastConn > 120000) {
+      Serial.println("[WS] Not connected for 120s. Rebooting...");
+      ESP.restart();
+    }
+
+    wsClient.poll();
   }
 }
 
@@ -178,7 +200,7 @@ void websocketMsgCallback(websockets::WebsocketsMessage message) {
       rc.send(code, length);
       digitalWrite(D0, HIGH);
     }else if (strcmp(message.c_str(), "reboot") == 0) {
-      Serial.println("Rebooting...");
+      Serial.println("[WS] Got reboot command. Rebooting...");
       ESP.restart();
     }
   }
